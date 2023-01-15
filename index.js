@@ -13,7 +13,7 @@ emitter.on('timer', (items) => {
 emitter.emit('timer', args)
 
 function timer(date) {
-  const momentValue = moment(date, 'mm-HH-DD-MM-YYYY')
+  const momentValue = moment(date, 'HH-DD-MM-YYYY')
 
   setInterval(function () {
     const result = momentValue.diff(moment())

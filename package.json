@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/goard/geekbrains_nodejs#readme",
   "dependencies": {
-    "colors": "^1.4.0"
+    "colors": "^1.4.0",
+    "humanize-duration": "^3.28.0",
+    "moment": "^2.29.4"
   }
 }

@@ -1,42 +1,38 @@
-const colors = require('colors');
-const args = process.argv.slice(2);
+const moment = require('moment')
+const EventEmitter = require('events')
+const args = process.argv.slice(2)
 
-function isNumber(arr) {
-  let check = false;
-  arr.every((el) => {
-    if (!Number.isInteger(+el)) {
-      check = true;
-      return false;
-    }
-    return true;
-  });
-  return check;
-}
+const emitter = new (class extends EventEmitter {})()
 
-if (args.length === 0) {
-  console.log(colors.red('Введите диапозон простых чисел'));
-  return;
-}
-
-const checkNumber = isNumber(args);
-
-if (checkNumber) {
-  console.log(colors.red('Введите числа для диапозона'));
-  return;
-}
-let m = +args[0];
-let n = +args[1];
-
-nextPrime: for (let i = m; i <= n; i++) {
-  // Для всех i...
-
-  for (let j = m; j < i; j++) {
-    // проверить, делится ли число..
-    if (i % j == 0) {
-      continue nextPrime;
-    } // не подходит, берём следующее
+emitter.on('timer', (items) => {
+  for (const item of items) {
+    timer(item)
   }
+})
 
-  console.log(i);
+emitter.emit('timer', args)
+
+function timer(date) {
+  const momentValue = moment(date, 'mm-HH-DD-MM-YYYY')
+
+  setInterval(function () {
+    const result = momentValue.diff(moment())
+    if (moment().isAfter(momentValue)) {
+      clearInterval(this)
+      console.log('Time is up!')
+      return
+    }
+    const duration = moment.duration(result)
+    console.log(
+      duration.days(),
+      'days',
+      duration.hours(),
+      'hours',
+      duration.minutes(),
+      'minutes',
+      duration.seconds(),
+      'seconds',
+      'left'
+    )
+  }, 1000)
 }
-

@@ -1,38 +1,21 @@
-const moment = require('moment')
-const EventEmitter = require('events')
-const args = process.argv.slice(2)
+const { createReadStream, createWriteStream } = require('fs')
+const { createInterface } = require('readline')
 
-const emitter = new (class extends EventEmitter {})()
+const ipAddress1 = '89.123.1.41'
+const ipAddress2 = '34.48.240.111'
 
-emitter.on('timer', (items) => {
-  for (const item of items) {
-    timer(item)
-  }
+const rs = createReadStream('./access_tmp.log')
+const ws1 = createWriteStream(`./${ipAddress1}_requests.log`)
+const ws2 = createWriteStream(`./${ipAddress2}_requests.log`)
+
+const rl = new createInterface({
+  input: rs,
 })
 
-emitter.emit('timer', args)
-
-function timer(date) {
-  const momentValue = moment(date, 'HH-DD-MM-YYYY')
-
-  setInterval(function () {
-    const result = momentValue.diff(moment())
-    if (moment().isAfter(momentValue)) {
-      clearInterval(this)
-      console.log('Time is up!')
-      return
-    }
-    const duration = moment.duration(result)
-    console.log(
-      duration.days(),
-      'days',
-      duration.hours(),
-      'hours',
-      duration.minutes(),
-      'minutes',
-      duration.seconds(),
-      'seconds',
-      'left'
-    )
-  }, 1000)
-}
+rl.on('line', function (line) {
+  if (new RegExp(ipAddress1, 'i').test(line)) {
+    ws1.write(line + '\n')
+  } else if (new RegExp(ipAddress2, 'i').test(line)) {
+    ws2.write(line + '\n')
+  }
+})

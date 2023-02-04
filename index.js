@@ -1,21 +1,53 @@
-const { createReadStream, createWriteStream } = require('fs')
-const { createInterface } = require('readline')
+const http = require('http')
+const path = require('path')
+const fsp = require('fs/promises')
+const inquirer = require('inquirer')
 
-const ipAddress1 = '89.123.1.41'
-const ipAddress2 = '34.48.240.111'
+const host = 'localhost'
+const port = 3000
+const resDir = __dirname
 
-const rs = createReadStream('./access_tmp.log')
-const ws1 = createWriteStream(`./${ipAddress1}_requests.log`)
-const ws2 = createWriteStream(`./${ipAddress2}_requests.log`)
+let pathVar = ''
 
-const rl = new createInterface({
-  input: rs,
-})
-
-rl.on('line', function (line) {
-  if (new RegExp(ipAddress1, 'i').test(line)) {
-    ws1.write(line + '\n')
-  } else if (new RegExp(ipAddress2, 'i').test(line)) {
-    ws2.write(line + '\n')
+function readDirInquirerChoose(inPath) {
+  if (pathVar !== '') {
+    pathVar = path.join(pathVar, inPath)
+  } else {
+    pathVar = inPath
   }
+  return new Promise((resolve, reject) => {
+    fsp
+      .readdir(pathVar)
+      .then((choices) => {
+        return inquirer.prompt({
+          name: 'fileName',
+          type: 'list', // input, number, confirm, list, rawlist, expand, checkbox, password
+          message: 'Choose file',
+          choices,
+        })
+      })
+      .then(async ({ fileName }) => {
+        const stat = await fsp.stat(path.join(pathVar, fileName))
+        if (stat.isDirectory()) {
+          return await readDirInquirerChoose(fileName)
+        }
+        return fileName
+      })
+      .then(resolve)
+      .catch(reject)
+  })
+}
+const server = http.createServer(async (req, res) => {
+  let data =null
+  data  = await readDirInquirerChoose(resDir)
+
+  if(data) {
+    res.end(JSON.stringify(data))
+  }
+  res.end(JSON.stringify(resDir))
 })
+
+
+server.listen(port, host, () =>
+  console.log(`Server run at http://${host}:${port}`)
+)

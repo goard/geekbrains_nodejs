@@ -1,62 +1,37 @@
 const http = require('http')
-const path = require('path')
-const fsp = require('fs/promises')
+const { Server } = require('socket.io')
 const fs = require('fs')
+const path = require('path')
+const crypto = require('crypto')
 
 const host = 'localhost'
 const port = 3000
-const resDir = __dirname
 
-let inPath = resDir
-let link = ''
+const server = http.createServer((req, res) => {
+  if (req.method === 'GET') {
+    const filePath = path.join(process.cwd(), './index.html')
+    const rs = fs.createReadStream(filePath)
 
-async function checkIsDir(inPath) {
-  const stat = await fsp.stat(inPath)
-  return stat.isDirectory()
-}
-
-function readDirInquirerChoose(inPath) {
-  return new Promise(async (resolve, reject) => {
-    await fsp.readdir(inPath).then(resolve).catch(reject)
-  })
-}
-
-const server = http.createServer(async (req, res) => {
-  res.setHeader('Content-Type', 'text/html; charset=utf-8')
-
-  if (req.url != '/favicon.ico') {
-    const url = req.url.substring(1, req.url.length)
-
-    if (url !== '') {
-      inPath += `/${url}`
-      link += `/${url}`
-      const isDirectory = await checkIsDir(inPath)
-      if (isDirectory) {
-        readDirInquirerChoose(inPath).then((data) => {
-          arr = data.map((el) => `<li><a href="${el}">${el}</a></li>`).join(' ')
-          res.end(arr)
-        })
-      } else {
-        const readStream = fs.createReadStream(inPath, { encoding: 'utf-8' })
-
-        readStream.on('data', (chunk) => {
-          res.write(chunk)
-        })
-
-        readStream.on('end', () => {
-          res.end()
-        })
-      }
-    } else {
-      inPath = resDir
-      readDirInquirerChoose(resDir).then((data) => {
-        arr = data.map((el) => `<li><a href="${el}">${el}</a></li>`).join(' ')
-        res.end(arr)
-      })
-    }
+    rs.pipe(res)
   }
+})
+const io = new Server(server)
+
+io.on('connection', (client) => {
+  console.log(`Websocket connetcted ${client.id}`)
+  const userId = crypto.randomUUID()
+
+  client.on('disconnect', (reason) => {
+    console.log('reason', reason)
+  })
+  client.emit('connect-user', { userId })
+
+  client.on('client-msg', (data) => {
+    client.broadcast.emit('server-msg', { userId: data.userId, msg: data.msg })
+    client.emit('server-msg', { userId: data.userId, msg: data.msg })
+  })
 })
 
 server.listen(port, host, () =>
-  console.log(`Server run at http://${host}:${port}`)
+  console.log(`Server running at http://${host}:${port}`)
 )
